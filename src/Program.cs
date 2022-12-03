@@ -15,7 +15,8 @@ const string WatchlistURL = "https://raw.githubusercontent.com/SlidyDev/Scarchiv
 
 if (!File.Exists(SettingsPath))
 {
-    File.Create(SettingsPath);
+    File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(new Settings()));
+
     Console.WriteLine("A settings.json file has been created. Please set the 'WebhookURL' property before proceeding.");
     return;
 }
@@ -180,16 +181,17 @@ async Task PostTrack(Track track)
         Title = track.Title,
         Description = track.Description,
         ImageUrl = bigCoverURL,
-        Fields = new()
-        {
-            new()
-            {
-                Name = "Tags",
-                Value = tags
-            }
-        },
         Color = new(255, 85, 0)
     };
+
+    if (!string.IsNullOrEmpty(tags))
+    {
+        embedBuilder.Fields.Add(new()
+        {
+            Name = "Tags",
+            Value = tags
+        });
+    }
 
     try
     {
