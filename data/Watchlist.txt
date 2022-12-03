@@ -1,4 +1,5 @@
 # One creator profile link per line
+# Make sure that the creator you wanna add isn't already in the list otherwise the bot will go nuts
 
 https://soundcloud.com/antikvng
 https://soundcloud.com/antikvng2
@@ -28,3 +29,6 @@ https://soundcloud.com/gawdlyheaven
 https://soundcloud.com/hitosmp3
 https://soundcloud.com/prod-yaboii
 https://soundcloud.com/officialprodxsept
+https://soundcloud.com/slide-gxd
+https://soundcloud.com/shinzusex
+https://soundcloud.com/killkrma
