@@ -2,7 +2,7 @@
 
 namespace ScarchivesBot.Entities;
 
-internal class User
+internal class User : Entity
 {
     [JsonProperty("username")]
     public string Username { get; set; }
@@ -12,4 +12,7 @@ internal class User
 
     [JsonProperty("permalink_url")]
     public string URL { get; set; }
+
+    [JsonProperty("id")]
+    public long ID { get; set; }
 }

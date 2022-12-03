@@ -25,9 +25,17 @@ internal class Track
     [JsonProperty("id")]
     public long ID { get; set; }
 
+    [JsonProperty("created_at")]
+    public DateTime CreatedAt { get; set; }
+
     internal class Media
     {
         [JsonProperty("transcodings")]
         public Transcoding[] Transcodings { get; set; }
+    }
+
+    public override string ToString()
+    {
+        return $"'{Title}' by {Author.Username}";
     }
 }
