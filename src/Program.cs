@@ -281,7 +281,7 @@ async Task<TracksPage> GetLatestTrack(User user)
     var args = HttpUtility.ParseQueryString(string.Empty);
     args.Add("client_id", ClientID);
     args.Add("offset", "0");
-    args.Add("limit", "1");
+    args.Add("limit", "20"); // gotta be 20 otherwise sc will act gay
     args.Add("linked_partitioning", "1");
 
     HttpResponseMessage response;
