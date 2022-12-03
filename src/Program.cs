@@ -6,7 +6,7 @@ using ScarchivesBot.Entities;
 using System.Text;
 using System.Web;
 
-const int UpdateDelay = 10000;
+const int UpdateDelay = 30000;
 const long FileSizeLimit = 8000000;
 const string SettingsPath = "settings.json";
 const string TempPath = "Temp";
