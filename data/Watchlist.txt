@@ -1,4 +1,4 @@
-# Use 1 line for every creator profile link
+# One creator profile link per line
 
 https://soundcloud.com/antikvng
 https://soundcloud.com/antikvng2
@@ -21,3 +21,10 @@ https://soundcloud.com/yung-ghxsted
 https://soundcloud.com/plvgin
 https://soundcloud.com/r-aymon
 https://soundcloud.com/kidphlame
+https://soundcloud.com/vvalak
+https://soundcloud.com/roninprod
+https://soundcloud.com/vrctic
+https://soundcloud.com/gawdlyheaven
+https://soundcloud.com/hitosmp3
+https://soundcloud.com/prod-yaboii
+https://soundcloud.com/officialprodxsept
