@@ -6,7 +6,7 @@ using ScarchivesBot.Entities;
 using System.Text;
 using System.Web;
 
-const int UpdateDelay = 30000;
+const int UpdateDelay = 60000;
 const long FileSizeLimit = 8000000;
 const string SettingsPath = "settings.json";
 const string TempPath = "Temp";
@@ -322,7 +322,6 @@ for (; ; )
 
         var lastTrack = trackPage.Tracks.FirstOrDefault();
 
-
         var userCache = cachedUsers.GetUserCache(user, out var isNew);
         if (isNew)
         {
@@ -336,10 +335,18 @@ for (; ; )
             continue;
 
         var lastTrackCreationTime = lastTrack.CreatedAt;
+        var trackId = 0;
 
         while (lastTrack.CreatedAt > userCache.LastUpload)
         {
             await PostTrack(lastTrack);
+
+            trackId++;
+            if (trackId < trackPage.Tracks.Length)
+            {
+                lastTrack = trackPage.Tracks[trackId];
+                continue;
+            }
 
             trackPage = await trackPage.GetNextPage(ClientID);
             if (trackPage == null)
