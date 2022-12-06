@@ -4,6 +4,7 @@ namespace ScarchivesBot.DataManagement;
 
 internal abstract class Settings
 {
+    [JsonIgnore]
     public string Path { get; set; }
 
     public async Task Save()

@@ -1,22 +1,72 @@
-using System.Web;
+﻿using Newtonsoft.Json;
 using ScarchivesBot.Entities;
-using Newtonsoft.Json;
+using System.Net.Http;
+using System.Web;
 
 using static ScarchivesBot.Config;
 
 namespace ScarchivesBot;
 
-internal class TrackDownloader
+public class SoundCloudClient
 {
     private List<Download> _downloads = new();
-    private HttpClient _httpClient;
+    private HttpClient _httpClient = new();
 
     public string DownloadPath { get; private set; }
 
-    public TrackDownloader(string downloadPath, HttpClient httpClient)
+    public SoundCloudClient(string downloadPath)
     {
         DownloadPath = downloadPath;
-        _httpClient = httpClient;
+    }
+
+    public async Task<T> ResolveEntity<T>(string url) where T : Entity
+    {
+        var args = HttpUtility.ParseQueryString(string.Empty);
+        args.Add("client_id", ClientID);
+        args.Add("url", url);
+
+        HttpResponseMessage result;
+        try
+        {
+            result = await _httpClient.GetAsync(SCApiUrl + "resolve?" + args.ToString());
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (!result.IsSuccessStatusCode)
+            return null;
+
+        var entity = JsonConvert.DeserializeObject<T>(await result.Content.ReadAsStringAsync());
+        if (entity.EntityKind != entity.ExpectedEntityKind)
+            return null;
+
+        return entity;
+    }
+
+    public async Task<TracksPage> GetTracksPage(User user)
+    {
+        var args = HttpUtility.ParseQueryString(string.Empty);
+        args.Add("client_id", ClientID);
+        args.Add("offset", "0");
+        args.Add("limit", "20"); // gotta be 20 otherwise sc will act gay
+        args.Add("linked_partitioning", "1");
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.GetAsync(SCApiUrl + $"users/{user.ID}/tracks?" + args.ToString());
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return JsonConvert.DeserializeObject<TracksPage>(await response.Content.ReadAsStringAsync());
     }
 
     public async Task<Download> DownloadTrack(Track track)
@@ -41,8 +91,8 @@ internal class TrackDownloader
 
         var fileResponse = await GetFileInfo(track);
         if (fileResponse == null)
-            return null;
-        
+            return download;
+
         var unparsedFileSize = fileResponse.Content.Headers.FirstOrDefault(h => h.Key.Equals("Content-Length")).Value?.FirstOrDefault();
         if (unparsedFileSize == null || !long.TryParse(unparsedFileSize, out var fileSize))
         {
@@ -77,7 +127,7 @@ internal class TrackDownloader
         HttpResponseMessage downloadLinkResult;
         try
         {
-            downloadLinkResult = await _httpClient.GetAsync($"{SCApiUrl}{transcoding.URL}?{args}");
+            downloadLinkResult = await _httpClient.GetAsync($"{transcoding.URL}?{args}");
         }
         catch (Exception ex)
         {

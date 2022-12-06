@@ -2,7 +2,7 @@
 
 namespace ScarchivesBot.Entities;
 
-internal class TracksPage
+public class TracksPage
 {
     [JsonProperty("collection")]
     public Track[] Tracks { get; set; }

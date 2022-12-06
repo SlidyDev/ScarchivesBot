@@ -2,8 +2,10 @@
 
 namespace ScarchivesBot.Entities;
 
-internal class Track
+public class Track : Entity
 {
+    public override string ExpectedEntityKind => "track";
+
     [JsonProperty("title")]
     public string Title { get; set; }
 
@@ -28,7 +30,7 @@ internal class Track
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; }
 
-    internal class Media
+    public class Media
     {
         [JsonProperty("transcodings")]
         public Transcoding[] Transcodings { get; set; }

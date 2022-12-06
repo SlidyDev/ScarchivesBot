@@ -2,7 +2,7 @@
 
 namespace ScarchivesBot.Entities;
 
-internal class User : Entity
+public class User : Entity
 {
     [JsonProperty("username")]
     public string Username { get; set; }
@@ -15,4 +15,6 @@ internal class User : Entity
 
     [JsonProperty("id")]
     public long ID { get; set; }
+
+    public override string ExpectedEntityKind => "user";
 }

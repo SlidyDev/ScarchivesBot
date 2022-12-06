@@ -9,5 +9,8 @@ namespace ScarchivesBot.DataManagement
 
         [JsonProperty("updateDelay")]
         public int UpdateDelay { get; set; } = 60000;
+
+        [JsonProperty("downloadsPath")]
+        public string DownloadsPath { get; set; } = "Temp";
     }
 }

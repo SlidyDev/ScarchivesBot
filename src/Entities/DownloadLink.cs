@@ -2,7 +2,7 @@
 
 namespace ScarchivesBot.Entities;
 
-internal class DownloadLink
+public class DownloadLink
 {
     [JsonProperty("url")]
     public string URL { get; set; }

@@ -2,8 +2,11 @@
 
 namespace ScarchivesBot.Entities;
 
-internal abstract class Entity
+public abstract class Entity
 {
     [JsonProperty("kind")]
     public string EntityKind { get; set; }
+
+    [JsonIgnore]
+    public abstract string ExpectedEntityKind { get; }
 }

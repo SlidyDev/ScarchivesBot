@@ -2,7 +2,7 @@
 
 namespace ScarchivesBot.Entities;
 
-internal class Transcoding
+public class Transcoding
 {
     [JsonProperty("url")]
     public string URL { get; set; }
@@ -10,7 +10,7 @@ internal class Transcoding
     [JsonProperty("format")]
     public Format AudioFormat { get; set; }
 
-    internal class Format
+    public class Format
     {
         [JsonProperty("protocol")]
         public string Protocol { get; set; }
