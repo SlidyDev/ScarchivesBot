@@ -29,37 +29,46 @@ internal class TrackDownloader
             if (downloadIdx == -1)
             {
                 var path = Path.Combine(DownloadPath, $"{track.ID}.mp3");
-                download = new(track.ID, path, DownloadTask(track, path));
-                _ = WaitAndDisposeDownload(download);
+                download = new(track.ID, path);
                 _downloads.Add(download);
             }
             else
             {
                 download = _downloads[downloadIdx];
+                return download;
             }
         }
 
+        var fileResponse = await GetFileInfo(track);
+        if (fileResponse == null)
+            return null;
+        
+        var unparsedFileSize = fileResponse.Content.Headers.FirstOrDefault(h => h.Key.Equals("Content-Length")).Value?.FirstOrDefault();
+        if (unparsedFileSize == null || !long.TryParse(unparsedFileSize, out var fileSize))
+        {
+            Console.WriteLine($"Failed to parse the file size for '{track}'");
+            return download;
+        }
+
+        download.FileSize = fileSize;
+
+        if (fileSize > FileSizeLimit)
+        {
+            Console.WriteLine($"The file size of '{track}' ({fileSize} bytes) is too big (max {FileSizeLimit} bytes)");
+            return download;
+        }
+
+        download.DownloadTask = DownloadTask(fileResponse.Content, download);
         return download;
     }
 
-    private async Task WaitAndDisposeDownload(Download download)
+    private async Task<HttpResponseMessage> GetFileInfo(Track track)
     {
-        await download.DownloadTask;
-        lock (_downloads)
-        {
-            _downloads.Remove(download);
-        }
-    }
-
-    private async Task DownloadTask(Track track, string downloadPath)
-    {
-        // Get the file
-
         var transcoding = track.Audio.Transcodings.FirstOrDefault(x => x.AudioFormat.Protocol == "progressive" && x.AudioFormat.MimeType == "audio/mpeg");
         if (transcoding == null)
         {
             Console.WriteLine($"Failed to get transcoding for '{track}'");
-            return;
+            return null;
         }
 
         var args = HttpUtility.ParseQueryString(string.Empty);
@@ -74,13 +83,13 @@ internal class TrackDownloader
         {
             Console.WriteLine($"Failed to request a download link for '{track}'");
             Console.WriteLine(ex);
-            return;
+            return null;
         }
 
         if (!downloadLinkResult.IsSuccessStatusCode)
         {
             Console.WriteLine($"Failed to request a download link for '{track}'");
-            return;
+            return null;
         }
 
         var downloadLinkPage = JsonConvert.DeserializeObject<DownloadLink>(await downloadLinkResult.Content.ReadAsStringAsync());
@@ -95,53 +104,45 @@ internal class TrackDownloader
         {
             Console.WriteLine($"Failed to download the file of '{track}'");
             Console.WriteLine(ex);
-            return;
+            return null;
         }
 
         if (!fileResult.IsSuccessStatusCode)
         {
             Console.WriteLine($"Failed to request a download link for '{track}'");
-            return;
+            return null;
         }
 
-        var unparsedFileSize = fileResult.Content.Headers.FirstOrDefault(h => h.Key.Equals("Content-Length")).Value?.FirstOrDefault();
-        if (unparsedFileSize == null || !long.TryParse(unparsedFileSize, out var fileSize))
-        {
-            Console.WriteLine($"Failed to parse the file size for '{track}'");
-            return;
-        }
+        return fileResult;
+    }
 
-        if (fileSize > FileSizeLimit)
-        {
-            Console.WriteLine($"The file size of '{track}' ({fileSize} bytes) is too big (max {FileSizeLimit} bytes)");
-            return;
-        }
+    private async Task<bool> DownloadTask(HttpContent content, Download download)
+    {
 
-        Console.WriteLine($"Downloading {fileSize} bytes for '{track}'");
+        Console.WriteLine($"Downloading {download.FileSize} bytes to '{download.DownloadPath}'");
 
-        var filePath = Path.Combine(TempPath, $"{track.ID}.mp3");
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-            using var fs = File.Create(filePath);
-            await fileResult.Content.CopyToAsync(fs);
+            Directory.CreateDirectory(Path.GetDirectoryName(download.DownloadPath));
+            using var fs = File.Create(download.DownloadPath);
+            await content.CopyToAsync(fs);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to download file for '{track}'");
+            Console.WriteLine($"Failed to download file to '{download.DownloadPath}'");
             Console.WriteLine(ex);
 
-            if (File.Exists(filePath))
-            {
-                try
-                {
-                    File.Delete(filePath);
-                }
-                catch { }
-            }
-
-            return;
+            return false;
         }
+        finally
+        {
+            lock (_downloads)
+            {
+                _downloads.Remove(download);
+            }
+        }
+
+        return true;
     }
 
     public class Download
@@ -152,11 +153,14 @@ internal class TrackDownloader
 
         public Task DownloadTask { get; set; }
 
-        public Download(long trackID, string downloadPath, Task downloadTask)
+        public long FileSize { get; set; }
+
+        public bool Failed => FileSize <= 0 || FileSize > FileSizeLimit || DownloadTask == null;
+
+        public Download(long trackID, string downloadPath)
         {
             TrackID = trackID;
             DownloadPath = downloadPath;
-            DownloadTask = downloadTask;
         }
 
         ~Download()
