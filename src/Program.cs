@@ -1,39 +1,39 @@
 ﻿using Discord;
-using Discord.Webhook;
+using Discord.WebSocket;
 using Newtonsoft.Json;
 using ScarchivesBot;
 using ScarchivesBot.Entities;
+using ScarchivesBot.DataManagement;
 using System.Text;
 using System.Web;
 
-const int UpdateDelay = 60000;
-const long FileSizeLimit = 8000000;
-const string SettingsPath = "settings.json";
-const string TempPath = "Temp";
-const string ClientID = "YeTcsotswIIc4sse5WZsXszVxMtP6eLc";
-const string WatchlistURL = "https://raw.githubusercontent.com/SlidyDev/ScarchivesBot/main/data/Watchlist.txt";
+using static ScarchivesBot.Config;
 
+var settings = await Settings.Load<BotSettings>(SettingsPath);
 if (!File.Exists(SettingsPath))
 {
-    File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(new Settings()));
+    await settings.Save();
 
-    Console.WriteLine("A settings.json file has been created. Please set the 'WebhookURL' property before proceeding.");
+    Console.WriteLine($"A {SettingsPath} file has been created. Please set the 'token' property before proceeding.");
     return;
 }
 
-Settings settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(SettingsPath));
-if (string.IsNullOrEmpty(settings.WebhookURL))
+if (string.IsNullOrEmpty(settings.Token))
 {
-    Console.WriteLine("Please set the 'WebhookURL' property before proceeding.");
+    Console.WriteLine("Please set the 'token' property before proceeding.");
     return;
 }
 
-var webhook = new DiscordWebhookClient(settings.WebhookURL);
+var discord = new DiscordSocketClient();
 
-var scClient = new HttpClient
+discord.Log += (msg) =>
 {
-    BaseAddress = new Uri("https://api-v2.soundcloud.com/")
+    Console.WriteLine($"[Discord][{msg.Severity}] {msg.Message}");
+    return Task.CompletedTask;
 };
+
+await discord.LoginAsync(TokenType.Bot, settings.Token);
+await discord.StartAsync();
 
 var httpClient = new HttpClient();
 
@@ -54,7 +54,7 @@ async Task PostTrack(Track track)
     HttpResponseMessage downloadLinkResult;
     try
     {
-        downloadLinkResult = await scClient.GetAsync($"{transcoding.URL}?{args}");
+        downloadLinkResult = await httpClient.GetAsync($"{transcoding.URL}?{args}");
     }
     catch (Exception ex)
     {
@@ -225,7 +225,7 @@ async Task<User> GetUserFromUrl(string url)
     HttpResponseMessage result;
     try
     {
-        result = await scClient.GetAsync("resolve?" + args.ToString());
+        result = await httpClient.GetAsync("resolve?" + args.ToString());
     }
     catch
     {
@@ -287,7 +287,7 @@ async Task<TracksPage> GetLatestTrack(User user)
     HttpResponseMessage response;
     try
     {
-        response = await scClient.GetAsync($"users/{user.ID}/tracks?" + args.ToString());
+        response = await httpClient.GetAsync($"users/{user.ID}/tracks?" + args.ToString());
     }
     catch
     {
@@ -304,7 +304,7 @@ var cachedUsers = new CachedUsers();
 
 for (; ; )
 {
-    await Task.Delay(UpdateDelay);
+    await Task.Delay(settings.UpdateDelay);
 
     var watchlist = await GetWatchlist();
     if (watchlist == null)
