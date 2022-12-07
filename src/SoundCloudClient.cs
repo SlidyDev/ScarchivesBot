@@ -12,13 +12,6 @@ public class SoundCloudClient
     private List<Download> _downloads = new();
     private HttpClient _httpClient = new();
 
-    public string DownloadPath { get; private set; }
-
-    public SoundCloudClient(string downloadPath)
-    {
-        DownloadPath = downloadPath;
-    }
-
     public async Task<T> ResolveEntity<T>(string url) where T : Entity
     {
         var args = HttpUtility.ParseQueryString(string.Empty);
@@ -78,8 +71,7 @@ public class SoundCloudClient
 
             if (downloadIdx == -1)
             {
-                var path = Path.Combine(DownloadPath, $"{track.ID}.mp3");
-                download = new(track.ID, path);
+                download = new(track.ID);
                 _downloads.Add(download);
             }
             else
@@ -108,7 +100,8 @@ public class SoundCloudClient
             return download;
         }
 
-        download.DownloadTask = DownloadTask(fileResponse.Content, download);
+        download.Content = fileResponse.Content;
+        
         return download;
     }
 
@@ -166,70 +159,19 @@ public class SoundCloudClient
         return fileResult;
     }
 
-    private async Task<bool> DownloadTask(HttpContent content, Download download)
-    {
-
-        Console.WriteLine($"Downloading {download.FileSize} bytes to '{download.DownloadPath}'");
-
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(download.DownloadPath));
-            using var fs = File.Create(download.DownloadPath);
-            await content.CopyToAsync(fs);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to download file to '{download.DownloadPath}'");
-            Console.WriteLine(ex);
-
-            return false;
-        }
-        finally
-        {
-            lock (_downloads)
-            {
-                _downloads.Remove(download);
-            }
-        }
-
-        return true;
-    }
-
     public class Download
     {
-        public string DownloadPath { get; private set; }
+        public HttpContent Content { get; set; }
 
         public long TrackID { get; private set; }
 
-        public Task DownloadTask { get; set; }
-
         public long FileSize { get; set; }
 
-        public bool Failed => FileSize <= 0 || FileSize > FileSizeLimit || DownloadTask == null;
+        public bool Failed => FileSize <= 0 || FileSize > FileSizeLimit || Content == null;
 
-        public Download(long trackID, string downloadPath)
+        public Download(long trackID)
         {
             TrackID = trackID;
-            DownloadPath = downloadPath;
-        }
-
-        ~Download()
-        {
-            if (!File.Exists(DownloadPath))
-                return;
-
-            try
-            {
-                File.Delete(DownloadPath);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to delete file '{DownloadPath}'");
-                Console.WriteLine(ex);
-                return;
-            }
-
-            Console.WriteLine($"Successfully deleted file '{DownloadPath}'");
         }
     }
 }

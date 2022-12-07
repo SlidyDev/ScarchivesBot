@@ -33,7 +33,7 @@ internal static class Program
         }
 
         var services = new ServiceCollection() // I fucking hate this
-            .AddSingleton(x => new SoundCloudClient(settings.DownloadsPath))
+            .AddSingleton<SoundCloudClient>()
             .AddSingleton<DiscordSocketClient>()
             .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
             .AddSingleton<CommandHandler>()

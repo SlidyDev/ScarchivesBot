@@ -16,10 +16,12 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
     [SlashCommand("download", "Downloads a SoundCloud track from a URL", runMode: RunMode.Async)]
     public async Task Download(string url)
     {
+        await RespondAsync($"Getting track info...");
+
         var track = await SC.ResolveEntity<Track>(url);
         if (track == null)
         {
-            await RespondAsync("The provided track URL is invalid.", ephemeral: true);
+            await ModifyOriginalResponseAsync(x => x.Content = "The provided track URL is invalid.");
             return;
         }
 
@@ -28,26 +30,33 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
         {
             if (download.FileSize > Config.FileSizeLimit)
             {
-                await RespondAsync($"The file size of the track is too big. [{download.FileSize}/{Config.FileSizeLimit} bytes]", ephemeral: true);
+                await ModifyOriginalResponseAsync(x => x.Content = $"The file size of the track is too big. [{download.FileSize}/{Config.FileSizeLimit} bytes]");
                 return;
             }
 
-            await RespondAsync($"Failed to download the track.", ephemeral: true);
+            await ModifyOriginalResponseAsync(x => x.Content = $"Failed to get the track stream.");
             return;
         }
 
-        await RespondAsync($"Downloading **{track.Title}** *({download.FileSize} bytes)*...");
-
-        await download.DownloadTask;
+        await ModifyOriginalResponseAsync(x => x.Content = $"Uploading **{track.Title}**...");
 
         try
         {
+            var stream = await download.Content.ReadAsStreamAsync();
             var embed = Program.GenerateEmbedForTrack(track);
-            await FollowupWithFileAsync(download.DownloadPath, embed: embed);
+            await ModifyOriginalResponseAsync(msg =>
+            {
+                msg.Content = "";
+                msg.Embed = embed;
+                msg.Attachments = new FileAttachment[]
+                {
+                    new(stream, $"{track.Title}.mp3")
+                };
+            });
         }
         catch
         {
-            await FollowupAsync("Failed to upload the track.");
+            await ModifyOriginalResponseAsync(x => x.Content = $"Failed to upload the track.");
             return;
         }
     }
