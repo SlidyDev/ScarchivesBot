@@ -2,6 +2,7 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using ScarchivesBot.DataManagement;
 using ScarchivesBot.DiscordUtilities;
 using ScarchivesBot.Entities;
@@ -14,12 +15,13 @@ internal static class Program
 {
     private static async Task Main()
     {
-        var settings = await Settings.Load<BotSettings>(SettingsPath);
-        if (!File.Exists(SettingsPath))
+        var settingsPath = Path.Combine(DataPath, "settings.json");
+        var settings = await Settings.Load<BotSettings>(settingsPath);
+        if (!File.Exists(settingsPath))
         {
             await settings.Save();
 
-            Console.WriteLine($"A {SettingsPath} file has been created. Please set the 'token' property before proceeding.");
+            Console.WriteLine($"A {settingsPath} file has been created. Please set the 'token' property before proceeding.");
             return;
         }
 
@@ -36,6 +38,7 @@ internal static class Program
             .AddSingleton<CommandHandler>()
             .BuildServiceProvider();
 
+        var soundcloud = services.GetRequiredService<SoundCloudClient>();
         var discord = services.GetRequiredService<DiscordSocketClient>();
         var commands = services.GetRequiredService<InteractionService>();
 
@@ -59,9 +62,98 @@ internal static class Program
         await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
         await readyTask.Task;
+
         await commands.RegisterCommandsToGuildAsync(929186964580753448);
 
-        await Task.Delay(-1);
+        var watchlistPath = Path.Combine(DataPath, "Watchlist");
+        DateTime nextMinTrackAge = DateTime.Now;
+        for (; ; )
+        {
+            await Task.Delay(settings.UpdateDelay);
+            if (discord.ConnectionState != ConnectionState.Connected)
+                continue;
+
+            if (!Directory.Exists(watchlistPath))
+                continue;
+
+            var minTrackAge = nextMinTrackAge;
+            nextMinTrackAge = DateTime.Now;
+
+            var creatorFiles = Directory.EnumerateFiles(watchlistPath, "*.json");
+            foreach (var file in creatorFiles)
+            {
+                try
+                {
+                    var id = Path.GetFileNameWithoutExtension(file);
+                    if (!long.TryParse(id, out _))
+                        continue;
+
+                    var creator = await soundcloud.GetUser(id);
+                    if (creator == null)
+                        continue;
+
+                    var tracksPage = await soundcloud.GetTracksPage(creator);
+                    if (tracksPage == null || tracksPage.Tracks == null)
+                        continue;
+
+                    CreatorToWatch creatorToWatch = null;
+                    var nextTrack = tracksPage.Tracks.FirstOrDefault();
+                    for (var idx = 0; ; idx++)
+                    {
+                        if (idx >= tracksPage.Tracks.Length)
+                        {
+                            tracksPage = await tracksPage.GetNextPage(ClientID);
+                            if (tracksPage == null)
+                                break;
+
+                            idx = -1;
+                            continue;
+                        }
+
+                        var track = tracksPage.Tracks[idx];
+                        if (track.CreatedAt < minTrackAge || track.CreatedAt > nextMinTrackAge)
+                            break;
+
+                        if (creatorToWatch == null)
+                        {
+                            creatorToWatch = JsonConvert.DeserializeObject<CreatorToWatch>(file);
+                            if (creatorToWatch.ChannelsWatching == null || creatorToWatch.ChannelsWatching.Count == 0)
+                            {
+                                File.Delete(file);
+                                break;
+                            }
+                        }
+
+                        var download = await soundcloud.DownloadTrack(track);
+                        if (download.Failed)
+                            continue;
+
+                        var embed = Program.GenerateEmbedForTrack(track);
+
+                        for (var channelIdx = 0; channelIdx < creatorToWatch.ChannelsWatching.Count; channelIdx++)
+                        {
+                            var channelId = creatorToWatch.ChannelsWatching[channelIdx];
+                            var channel = discord.GetGuild(channelId.GuildId)?.GetTextChannel(channelId.Id);
+                            if (channel == null)
+                            {
+                                creatorToWatch.ChannelsWatching.RemoveAt(channelIdx);
+                                await creatorToWatch.Save();
+                                channelIdx--;
+                                continue;
+                            }
+
+                            try
+                            {
+                                using var stream = await download.Content.ReadAsStreamAsync();
+                                await channel.SendFileAsync(new FileAttachment(stream, $"{track.Title}.mp3"), string.Empty, embed: embed);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
     }
 
     public static Embed GenerateEmbedForTrack(Track track)

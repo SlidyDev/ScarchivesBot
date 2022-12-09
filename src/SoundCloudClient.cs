@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Discord;
+using Newtonsoft.Json;
 using ScarchivesBot.Entities;
 using System.Web;
 
@@ -48,7 +49,7 @@ public class SoundCloudClient
         HttpResponseMessage response;
         try
         {
-            response = await _httpClient.GetAsync(SCApiUrl + $"users/{user.ID}/tracks?" + args.ToString());
+            response = await _httpClient.GetAsync($"{SCApiUrl}users/{user.ID}/tracks?{args}");
         }
         catch
         {
@@ -59,6 +60,27 @@ public class SoundCloudClient
             return null;
 
         return JsonConvert.DeserializeObject<TracksPage>(await response.Content.ReadAsStringAsync());
+    }
+
+    public async Task<User> GetUser(string id)
+    {
+        var args = HttpUtility.ParseQueryString(string.Empty);
+        args.Add("client_id", ClientID);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.GetAsync($"{SCApiUrl}users/{id}?{args}");
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return JsonConvert.DeserializeObject<User>(await response.Content.ReadAsStringAsync());
     }
 
     public async Task<Download> DownloadTrack(Track track)

@@ -37,7 +37,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
 
         try
         {
-            var stream = await download.Content.ReadAsStreamAsync();
+            using var stream = await download.Content.ReadAsStreamAsync();
             var embed = Program.GenerateEmbedForTrack(track);
             await ModifyOriginalResponseAsync(msg =>
             {
