@@ -55,4 +55,25 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             return;
         }
     }
+
+    [SlashCommand("list", "Gets this channel's watchlist.", runMode: RunMode.Async)]
+    [RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    public async Task List([Summary("Creator URL", "A SoundCloud profile URL.")] string url)
+    {
+
+    }
+
+    [SlashCommand("add", "Adds a SoundCloud creator to this channel's watchlist.")]
+    //[RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    public async Task Add([Summary("Creator URL", "A SoundCloud profile URL.")] string url)
+    {
+
+    }
+
+    [SlashCommand("remove", "Removes a SoundCloud creator from this channel's watchlist.")]
+    //[RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    public async Task Remove([Summary("Creator URL", "A SoundCloud profile URL.")] string url)
+    {
+
+    }
 }

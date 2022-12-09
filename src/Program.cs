@@ -116,7 +116,7 @@ internal static class Program
 
                         if (creatorToWatch == null)
                         {
-                            creatorToWatch = JsonConvert.DeserializeObject<CreatorToWatch>(file);
+                            creatorToWatch = await Settings.Load<CreatorToWatch>(file);
                             if (creatorToWatch.ChannelsWatching == null || creatorToWatch.ChannelsWatching.Count == 0)
                             {
                                 File.Delete(file);
