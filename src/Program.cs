@@ -2,13 +2,10 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using ScarchivesBot.DataManagement;
 using ScarchivesBot.DiscordUtilities;
 using ScarchivesBot.Entities;
-using System.Net.Http;
 using System.Text;
-using System.Web;
 using static ScarchivesBot.Config;
 
 namespace ScarchivesBot;

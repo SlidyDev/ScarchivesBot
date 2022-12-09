@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using ScarchivesBot.Entities;
-using System.Net.Http;
 using System.Web;
 
 using static ScarchivesBot.Config;
@@ -101,7 +100,7 @@ public class SoundCloudClient
         }
 
         download.Content = fileResponse.Content;
-        
+
         return download;
     }
 
