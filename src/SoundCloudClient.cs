@@ -1,5 +1,4 @@
-﻿using Discord;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using ScarchivesBot.Entities;
 using System.Web;
 
@@ -62,7 +61,7 @@ public class SoundCloudClient
         return JsonConvert.DeserializeObject<TracksPage>(await response.Content.ReadAsStringAsync());
     }
 
-    public async Task<User> GetUser(string id)
+    public async Task<User> GetUser(long id)
     {
         var args = HttpUtility.ParseQueryString(string.Empty);
         args.Add("client_id", ClientID);

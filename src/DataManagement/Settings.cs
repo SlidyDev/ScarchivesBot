@@ -18,10 +18,16 @@ internal abstract class Settings
         if (!File.Exists(path))
             return new T { Path = path };
 
-        return JsonConvert.DeserializeObject<T>(await ReadPatiently(path));
+        var read = await ReadPatiently(path);
+        if (read == null)
+            return null;
+
+        var result = JsonConvert.DeserializeObject<T>(read);
+        result.Path = path;
+        return result;
     }
 
-    private static async Task WritePatiently(string path, string contents, int maxAttempts = 10, int retryDelayMs = 200)
+    private static async Task WritePatiently(string path, string contents, int maxAttempts = 10, int retryDelayMs = 100)
     {
         for (var numTries = 0; numTries < maxAttempts; numTries++)
         {

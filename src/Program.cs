@@ -2,7 +2,6 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using ScarchivesBot.DataManagement;
 using ScarchivesBot.DiscordUtilities;
 using ScarchivesBot.Entities;
@@ -17,6 +16,12 @@ internal static class Program
     {
         var settingsPath = Path.Combine(DataPath, "settings.json");
         var settings = await Settings.Load<BotSettings>(settingsPath);
+        if (settings == null)
+        {
+            Console.WriteLine("Failed to load the bot settings.");
+            return;
+        }
+
         if (!File.Exists(settingsPath))
         {
             await settings.Save();
@@ -65,30 +70,29 @@ internal static class Program
 
         await commands.RegisterCommandsToGuildAsync(929186964580753448);
 
-        var watchlistPath = Path.Combine(DataPath, "Watchlist");
-        DateTime nextMinTrackAge = DateTime.Now;
+        DateTime nextMinTrackAge = DateTime.UtcNow;
         for (; ; )
         {
             await Task.Delay(settings.UpdateDelay);
             if (discord.ConnectionState != ConnectionState.Connected)
                 continue;
 
-            if (!Directory.Exists(watchlistPath))
+            if (!Directory.Exists(WatchlistPath))
                 continue;
 
             var minTrackAge = nextMinTrackAge;
-            nextMinTrackAge = DateTime.Now;
+            nextMinTrackAge = DateTime.UtcNow;
 
-            var creatorFiles = Directory.EnumerateFiles(watchlistPath, "*.json");
+            var creatorFiles = Directory.EnumerateFiles(WatchlistPath, "*.json");
             foreach (var file in creatorFiles)
             {
                 try
                 {
                     var id = Path.GetFileNameWithoutExtension(file);
-                    if (!long.TryParse(id, out _))
+                    if (!long.TryParse(id, out var parsedId))
                         continue;
 
-                    var creator = await soundcloud.GetUser(id);
+                    var creator = await soundcloud.GetUser(parsedId);
                     if (creator == null)
                         continue;
 
@@ -117,6 +121,9 @@ internal static class Program
                         if (creatorToWatch == null)
                         {
                             creatorToWatch = await Settings.Load<CreatorToWatch>(file);
+                            if (creatorToWatch == null)
+                                break;
+
                             if (creatorToWatch.ChannelsWatching == null || creatorToWatch.ChannelsWatching.Count == 0)
                             {
                                 File.Delete(file);
