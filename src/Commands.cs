@@ -60,7 +60,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("list", "Gets this channel's watchlist.", runMode: RunMode.Async)]
-    //[RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    [RequireUserPermission(ChannelPermission.ManageWebhooks)]
     public async Task List()
     {
         await RespondAsync("Gathering all user info...", ephemeral: true);
@@ -113,7 +113,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("add", "Adds a SoundCloud creator to this channel's watchlist.")]
-    //[RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    [RequireUserPermission(ChannelPermission.ManageWebhooks)]
     public async Task Add(string url)
     {
         await RespondAsync("Getting user info...");
@@ -163,7 +163,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("remove", "Removes a SoundCloud creator from this channel's watchlist.")]
-    //[RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    [RequireUserPermission(ChannelPermission.ManageWebhooks)]
     public async Task Remove(string url)
     {
         await RespondAsync("Getting user info...");
