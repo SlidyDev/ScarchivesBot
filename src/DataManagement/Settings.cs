@@ -7,7 +7,7 @@ internal abstract class Settings
     [JsonIgnore]
     public string Path { get; set; }
 
-    public async Task Save()
+    public virtual async Task Save()
     {
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
         await WritePatiently(Path, JsonConvert.SerializeObject(this));
