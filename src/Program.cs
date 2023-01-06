@@ -69,6 +69,7 @@ internal static class Program
         await readyTask.Task;
 
         await commands.RegisterCommandsToGuildAsync(929186964580753448);
+        await commands.RegisterCommandsGloballyAsync();
 
         DateTime nextMinTrackAge = DateTime.UtcNow;
         for (; ; )
