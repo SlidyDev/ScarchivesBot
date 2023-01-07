@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using ScarchivesBot.Entities;
+using System.Net;
 using System.Web;
 
 using static ScarchivesBot.Config;
@@ -9,30 +10,30 @@ namespace ScarchivesBot;
 public class SoundCloudClient
 {
     private List<Download> _downloads = new();
-    private HttpClient _httpClient = new();
+    private HttpClient _httpClient = new(new HttpClientHandler()
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 4
+    });
 
     public async Task<T> ResolveEntity<T>(string url) where T : Entity
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        HttpResponseMessage uriResponse;
+        try
+        {
+            uriResponse = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (!uriResponse.IsSuccessStatusCode)
             return null;
 
-        if (uri.Host.StartsWith("on."))
-        {
-            HttpResponseMessage mobileRequestResult;
-            try
-            {
-                mobileRequestResult = await _httpClient.GetAsync(uri);
-            }
-            catch
-            {
-                return null;
-            }
-
-            var location = mobileRequestResult.Headers.FirstOrDefault(x => x.Key.Equals("location")).Value?.FirstOrDefault();
-
-            if (!Uri.TryCreate(location, UriKind.Absolute, out uri))
-                return null;
-        }
+        var uri = uriResponse.RequestMessage.RequestUri;
+        if (uri == null)
+            return null;
 
         var args = HttpUtility.ParseQueryString(string.Empty);
         args.Add("client_id", ClientID);
