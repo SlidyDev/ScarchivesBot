@@ -124,6 +124,8 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
+        await channel.AddPermissionOverwriteAsync(msg.Author, new(sendMessages: PermValue.Allow, attachFiles: PermValue.Allow));
+
         var user = await SC.ResolveEntity<User>(url);
         if (user == null)
         {

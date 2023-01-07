@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using ScarchivesBot.Entities;
-using System.Net;
 using System.Web;
 
 using static ScarchivesBot.Config;
@@ -9,12 +8,18 @@ namespace ScarchivesBot;
 
 public class SoundCloudClient
 {
+    public readonly string ClientId;
     private List<Download> _downloads = new();
     private HttpClient _httpClient = new(new HttpClientHandler()
     {
         AllowAutoRedirect = true,
         MaxAutomaticRedirections = 4
     });
+
+    public SoundCloudClient(string clientId)
+    {
+        this.ClientId = clientId;
+    }
 
     public async Task<T> ResolveEntity<T>(string url) where T : Entity
     {
@@ -39,7 +44,7 @@ public class SoundCloudClient
 
         Console.WriteLine($"Resolving: {uri}");
         var args = HttpUtility.ParseQueryString(string.Empty);
-        args.Add("client_id", ClientID);
+        args.Add("client_id", ClientId);
         args.Add("url", uri.ToString());
 
         HttpResponseMessage result;
@@ -65,7 +70,7 @@ public class SoundCloudClient
     public async Task<TracksPage> GetTracksPage(User user)
     {
         var args = HttpUtility.ParseQueryString(string.Empty);
-        args.Add("client_id", ClientID);
+        args.Add("client_id", ClientId);
         args.Add("offset", "0");
         args.Add("limit", "20"); // gotta be 20 otherwise sc will act gay
         args.Add("linked_partitioning", "1");
@@ -89,7 +94,7 @@ public class SoundCloudClient
     public async Task<User> GetUser(long id)
     {
         var args = HttpUtility.ParseQueryString(string.Empty);
-        args.Add("client_id", ClientID);
+        args.Add("client_id", ClientId);
 
         HttpResponseMessage response;
         try
@@ -160,7 +165,7 @@ public class SoundCloudClient
         }
 
         var args = HttpUtility.ParseQueryString(string.Empty);
-        args.Add("client_id", ClientID);
+        args.Add("client_id", ClientId);
 
         HttpResponseMessage downloadLinkResult;
         try

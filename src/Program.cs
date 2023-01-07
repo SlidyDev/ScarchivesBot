@@ -28,7 +28,7 @@ internal static class Program
         {
             await settings.Save();
 
-            Console.WriteLine($"A {settingsPath} file has been created. Please set the 'token' property before proceeding.");
+            Console.WriteLine($"A {settingsPath} file has been created. Please set the 'token' and 'soundCloudClientId' property before proceeding.");
             return;
         }
 
@@ -38,8 +38,14 @@ internal static class Program
             return;
         }
 
+        if (string.IsNullOrEmpty(settings.SoundCloudClientId))
+        {
+            Console.WriteLine("Please set the 'soundCloudClientId' property before proceeding.");
+            return;
+        }
+
         var services = new ServiceCollection() // I fucking hate this
-            .AddSingleton<SoundCloudClient>()
+            .AddSingleton(new SoundCloudClient(settings.SoundCloudClientId))
             .AddSingleton<DiscordSocketClient>()
             .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
             .AddSingleton<CommandHandler>()
@@ -78,12 +84,11 @@ internal static class Program
         DateTime nextMinTrackAge = DateTime.UtcNow;
         for (; ; )
         {
-            await Task.Delay(settings.UpdateDelay);
-            if (DiscordClient.ConnectionState != ConnectionState.Connected)
+            if (DiscordClient.ConnectionState != ConnectionState.Connected || !Directory.Exists(WatchlistPath))
+            {
+                await Task.Delay(10000);
                 continue;
-
-            if (!Directory.Exists(WatchlistPath))
-                continue;
+            }
 
             var minTrackAge = nextMinTrackAge;
             nextMinTrackAge = DateTime.UtcNow;
@@ -91,6 +96,7 @@ internal static class Program
             var creatorFiles = Directory.EnumerateFiles(WatchlistPath, "*.json");
             foreach (var file in creatorFiles)
             {
+                await Task.Delay(1000);
                 try
                 {
                     var id = Path.GetFileNameWithoutExtension(file);
@@ -111,7 +117,7 @@ internal static class Program
                     {
                         if (idx >= tracksPage.Tracks.Length)
                         {
-                            tracksPage = await tracksPage.GetNextPage(ClientID);
+                            tracksPage = await tracksPage.GetNextPage(soundcloud.ClientId);
                             if (tracksPage == null)
                                 break;
 
@@ -170,8 +176,8 @@ internal static class Program
 
     public static async Task UpdateStatus()
     {
-        var creatorFileCount = Directory.EnumerateFiles(WatchlistPath, "*.json").Count();
-        await DiscordClient.SetGameAsync($"{creatorFileCount} SoundCloud artists", type: ActivityType.Watching);
+        var creatorFileCount = Directory.Exists(WatchlistPath) ? Directory.EnumerateFiles(WatchlistPath, "*.json").Count() : 0;
+        await DiscordClient.SetGameAsync($"{creatorFileCount} SC creators", type: ActivityType.Watching);
     }
 
     public static Embed GenerateEmbedForTrack(Track track)
