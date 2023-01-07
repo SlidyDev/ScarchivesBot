@@ -13,9 +13,30 @@ public class SoundCloudClient
 
     public async Task<T> ResolveEntity<T>(string url) where T : Entity
     {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return null;
+
+        if (uri.Host.StartsWith("on."))
+        {
+            HttpResponseMessage mobileRequestResult;
+            try
+            {
+                mobileRequestResult = await _httpClient.GetAsync(uri);
+            }
+            catch
+            {
+                return null;
+            }
+
+            var location = mobileRequestResult.Headers.FirstOrDefault(x => x.Key.Equals("location")).Value?.FirstOrDefault();
+
+            if (!Uri.TryCreate(location, UriKind.Absolute, out uri))
+                return null;
+        }
+
         var args = HttpUtility.ParseQueryString(string.Empty);
         args.Add("client_id", ClientID);
-        args.Add("url", url);
+        args.Add("url", uri.ToString());
 
         HttpResponseMessage result;
         try
