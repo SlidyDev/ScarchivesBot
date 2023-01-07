@@ -12,6 +12,8 @@ namespace ScarchivesBot;
 
 internal static class Program
 {
+    internal static DiscordSocketClient DiscordClient;
+
     private static async Task Main()
     {
         var settingsPath = Path.Combine(DataPath, "settings.json");
@@ -44,25 +46,25 @@ internal static class Program
             .BuildServiceProvider();
 
         var soundcloud = services.GetRequiredService<SoundCloudClient>();
-        var discord = services.GetRequiredService<DiscordSocketClient>();
+        DiscordClient = services.GetRequiredService<DiscordSocketClient>();
         var commands = services.GetRequiredService<InteractionService>();
 
-        discord.Log += (msg) =>
+        DiscordClient.Log += (msg) =>
         {
             Console.WriteLine($"[Discord][{msg.Severity}] {msg.Message}");
             return Task.CompletedTask;
         };
 
-        await discord.LoginAsync(TokenType.Bot, settings.Token);
+        await DiscordClient.LoginAsync(TokenType.Bot, settings.Token);
 
         var readyTask = new TaskCompletionSource();
-        discord.Ready += () =>
+        DiscordClient.Ready += () =>
         {
             readyTask.SetResult();
             return Task.CompletedTask;
         };
 
-        await discord.StartAsync();
+        await DiscordClient.StartAsync();
 
         await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
@@ -71,11 +73,13 @@ internal static class Program
         await commands.RegisterCommandsToGuildAsync(929186964580753448);
         await commands.RegisterCommandsGloballyAsync();
 
+        await UpdateStatus();
+
         DateTime nextMinTrackAge = DateTime.UtcNow;
         for (; ; )
         {
             await Task.Delay(settings.UpdateDelay);
-            if (discord.ConnectionState != ConnectionState.Connected)
+            if (DiscordClient.ConnectionState != ConnectionState.Connected)
                 continue;
 
             if (!Directory.Exists(WatchlistPath))
@@ -141,7 +145,7 @@ internal static class Program
                         for (var channelIdx = 0; channelIdx < creatorToWatch.ChannelsWatching.Count; channelIdx++)
                         {
                             var channelId = creatorToWatch.ChannelsWatching[channelIdx];
-                            var channel = discord.GetGuild(channelId.GuildId)?.GetTextChannel(channelId.Id);
+                            var channel = DiscordClient.GetGuild(channelId.GuildId)?.GetTextChannel(channelId.Id);
                             if (channel == null)
                             {
                                 creatorToWatch.ChannelsWatching.RemoveAt(channelIdx);
@@ -162,6 +166,12 @@ internal static class Program
                 catch { }
             }
         }
+    }
+
+    public static async Task UpdateStatus()
+    {
+        var creatorFileCount = Directory.EnumerateFiles(WatchlistPath, "*.json").Count();
+        await DiscordClient.SetGameAsync($"{creatorFileCount} SoundCloud artists", type: ActivityType.Watching);
     }
 
     public static Embed GenerateEmbedForTrack(Track track)

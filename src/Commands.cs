@@ -160,6 +160,8 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
         await creatorToWatch.Save();
 
         await ModifyOriginalResponseAsync(x => x.Content = $"**{user.Username}** has been added to this channel's watchlist.");
+
+        await Program.UpdateStatus();
     }
 
     [SlashCommand("remove", "Removes a SoundCloud creator from this channel's watchlist.")]
@@ -210,5 +212,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
         await creatorToWatch.Save();
 
         await ModifyOriginalResponseAsync(x => x.Content = $"**{user.Username}** has been removed from this channel's watchlist.");
+
+        await Program.UpdateStatus();
     }
 }
