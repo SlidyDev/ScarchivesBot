@@ -71,6 +71,8 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
+        await VerifyChannelPerms(msg);
+
         var settings = await channel.GetSettings();
         if (settings == null)
         {
@@ -124,7 +126,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        await channel.AddPermissionOverwriteAsync(msg.Author, new(sendMessages: PermValue.Allow, attachFiles: PermValue.Allow));
+        await VerifyChannelPerms(msg);
 
         var user = await SC.ResolveEntity<User>(url);
         if (user == null)
@@ -178,6 +180,8 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
+        await VerifyChannelPerms(msg);
+
         var user = await SC.ResolveEntity<User>(url);
         if (user == null)
         {
@@ -216,5 +220,13 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
         await ModifyOriginalResponseAsync(x => x.Content = $"**{user.Username}** has been removed from this channel's watchlist.");
 
         await Program.UpdateStatus();
+    }
+
+    private static async Task VerifyChannelPerms(IUserMessage msg)
+    {
+        if (msg.Channel is not SocketTextChannel channel)
+            return;
+
+        await channel.AddPermissionOverwriteAsync(msg.Author, new(sendMessages: PermValue.Allow, attachFiles: PermValue.Allow, viewChannel: PermValue.Allow));
     }
 }
