@@ -35,6 +35,9 @@ public class SoundCloudClient
         if (uri == null)
             return null;
 
+        uri = new(uri.GetLeftPart(UriPartial.Path));
+
+        Console.WriteLine($"Resolving: {uri}");
         var args = HttpUtility.ParseQueryString(string.Empty);
         args.Add("client_id", ClientID);
         args.Add("url", uri.ToString());
