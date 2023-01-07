@@ -61,6 +61,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
 
     [SlashCommand("list", "Gets this channel's watchlist.", runMode: RunMode.Async)]
     [RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    [RequireBotPermission(ChannelPermission.SendMessages | ChannelPermission.AttachFiles | ChannelPermission.ViewChannel)]
     public async Task List()
     {
         await RespondAsync("Gathering all user info...", ephemeral: true);
@@ -70,8 +71,6 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             await ModifyOriginalResponseAsync(x => x.Content = "Something is wrong bruh.");
             return;
         }
-
-        await VerifyChannelPerms(msg);
 
         var settings = await channel.GetSettings();
         if (settings == null)
@@ -116,6 +115,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
 
     [SlashCommand("add", "Adds a SoundCloud creator to this channel's watchlist.")]
     [RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    [RequireBotPermission(ChannelPermission.SendMessages | ChannelPermission.AttachFiles | ChannelPermission.ViewChannel)]
     public async Task Add(string url)
     {
         await RespondAsync("Getting user info...");
@@ -125,8 +125,6 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             await ModifyOriginalResponseAsync(x => x.Content = "Wrong channel type.");
             return;
         }
-
-        await VerifyChannelPerms(msg);
 
         var user = await SC.ResolveEntity<User>(url);
         if (user == null)
@@ -170,6 +168,7 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
 
     [SlashCommand("remove", "Removes a SoundCloud creator from this channel's watchlist.")]
     [RequireUserPermission(ChannelPermission.ManageWebhooks)]
+    [RequireBotPermission(ChannelPermission.SendMessages | ChannelPermission.AttachFiles | ChannelPermission.ViewChannel)]
     public async Task Remove(string url)
     {
         await RespondAsync("Getting user info...");
@@ -179,8 +178,6 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
             await ModifyOriginalResponseAsync(x => x.Content = "Wrong channel type.");
             return;
         }
-
-        await VerifyChannelPerms(msg);
 
         var user = await SC.ResolveEntity<User>(url);
         if (user == null)
@@ -220,13 +217,5 @@ public class Commands : InteractionModuleBase<SocketInteractionContext>
         await ModifyOriginalResponseAsync(x => x.Content = $"**{user.Username}** has been removed from this channel's watchlist.");
 
         await Program.UpdateStatus();
-    }
-
-    private static async Task VerifyChannelPerms(IUserMessage msg)
-    {
-        if (msg.Channel is not SocketTextChannel channel)
-            return;
-
-        await channel.AddPermissionOverwriteAsync(msg.Author, new(sendMessages: PermValue.Allow, attachFiles: PermValue.Allow, viewChannel: PermValue.Allow));
     }
 }
